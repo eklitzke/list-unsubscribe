@@ -24,25 +24,20 @@ import re
 import sys
 import webbrowser
 
-from typing import Tuple
-
 URL_REGEX = re.compile(r'<(https?://.*?)>')
 
 
-def get_unsubscribe_url(msg: email.message.EmailMessage) -> Tuple[str, str]:
-    """Get the unsubscribe URL fron an email message.
-
-    Returns tuple of (raw header value, parsed URL).
-    """
+def get_raw_unsubscribe_value(filename: str) -> str:
+    """Get the raw List-Unsubscribe value for a filename."""
+    if filename == '-':
+        msg = email.message_from_file(sys.stdin)
+    else:
+        with open(filename) as input_file:
+            msg = email.message_from_file(input_file)
     try:
-        raw_value = msg['List-Unsubscribe']
+        return msg['List-Unsubscribe']
     except KeyError:
-        return '', ''  # no List-Unsubscribe
-
-    m = URL_REGEX.search(raw_value)
-    if m:
-        return raw_value, m.groups()[0]
-    return raw_value, ''
+        return ''
 
 
 def main():
@@ -64,24 +59,23 @@ def main():
         help='File to process, or stdin if omitted')
     args = parser.parse_args()
 
-    if args.file == '-':
-        msg = email.message_from_file(sys.stdin)
-    else:
-        with open(args.file) as input_file:
-            msg = email.message_from_file(input_file)
-    raw_value, url = get_unsubscribe_url(msg)
-
+    raw_value = get_raw_unsubscribe_value(args.file)
     if not raw_value:
-        return  # no header found
+        sys.exit(1)  # List-Unsubscribe header not found
 
     if args.print_value:
         print(raw_value)
+        return
 
-    if url:
-        if args.browser:
-            webbrowser.open_new_tab(url)
-        else:
-            print(url)
+    m = URL_REGEX.search(raw_value)
+    if not m:
+        sys.exit(2)  # List-Unsubscribe header found, but no URL found
+
+    url = m.groups()[0]
+    if args.browser:
+        webbrowser.open_new_tab(url)
+    else:
+        print(url)
 
 
 if __name__ == '__main__':
