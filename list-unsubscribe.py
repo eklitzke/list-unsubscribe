@@ -71,7 +71,7 @@ def main():
     if not m:
         sys.exit(2)  # List-Unsubscribe header found, but no URL found
 
-    url = m.groups()[0]
+    url = m.groups()[0].strip()
     if args.browser:
         webbrowser.open_new_tab(url)
     else:
