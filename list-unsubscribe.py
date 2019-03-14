@@ -24,18 +24,7 @@ import re
 import sys
 import webbrowser
 
-# TODO: handle mailto: links
-URL_REGEX = re.compile(r'<(https?://.*?)>')
-
-
-def get_unsubscribe_value_from_invalid_file(filename: str, lines=100) -> str:
-    """Try to get a List-Unsubscribe even if the file is improperly encoded."""
-    with open(filename, 'rb') as f:
-        for line in f.readlines()[:lines]:
-            if line.startswith(b'List-Unsubscribe:'):
-                line = line.decode('utf8').rstrip()
-                return line.split(': ', 1)[1]
-    return ''
+URL_REGEX = re.compile(r'<((https?://|mailto:).*?)>')
 
 
 def get_raw_unsubscribe_value(filename: str) -> str:
@@ -53,6 +42,18 @@ def get_raw_unsubscribe_value(filename: str) -> str:
         return msg['List-Unsubscribe']
     except KeyError:
         return ''
+
+
+def get_unsubscribe_value_from_invalid_file(filename: str, lines=100) -> str:
+    """Try to get a List-Unsubscribe even if the file is improperly encoded."""
+    with open(filename, 'rb') as f:
+        # assume the List-Unsubscribe header is in the first few lines
+        for _ in range(lines):
+            line = f.readline()
+            if line.startswith(b'List-Unsubscribe:'):
+                line = line.decode('utf8').rstrip()
+                return line.split(': ', 1)[1]
+    return ''
 
 
 def main():
